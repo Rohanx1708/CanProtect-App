@@ -14,9 +14,11 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _loading = false;
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -26,15 +28,11 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _login() async {
+    final isValid = _formKey.currentState?.validate() ?? false;
+    if (!isValid) return;
+
     final email = _emailController.text.trim();
     final password = _passwordController.text;
-
-    if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter email and password.')),
-      );
-      return;
-    }
 
     setState(() {
       _loading = true;
@@ -166,116 +164,141 @@ class _LoginScreenState extends State<LoginScreen> {
         child: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const SizedBox(height: 16),
-                Center(
-                  child: Container(
-                    width: 90,
-                    height: 90,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.9),
-                      shape: BoxShape.circle,
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Colors.black26,
-                          blurRadius: 12,
-                          offset: Offset(0, 6),
-                        ),
-                        BoxShadow(
-                          color: Colors.black12,
-                          blurRadius: 24,
-                          spreadRadius: 2,
-                          offset: Offset(0, 10),
-                        ),
-                      ],
-                    ),
-                    padding: const EdgeInsets.all(10),
-                    child: Image.asset('assets/images/logo_circle.png', fit: BoxFit.contain),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Can Protect Foundation',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 24,
-                      ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Please login to continue',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 16),
+                  Center(
+                    child: Container(
+                      width: 90,
+                      height: 90,
+                      decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.9),
-                        fontStyle: FontStyle.italic,
-                        fontSize: 14,
+                        shape: BoxShape.circle,
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Colors.black26,
+                            blurRadius: 12,
+                            offset: Offset(0, 6),
+                          ),
+                          BoxShadow(
+                            color: Colors.black12,
+                            blurRadius: 24,
+                            spreadRadius: 2,
+                            offset: Offset(0, 10),
+                          ),
+                        ],
                       ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 24),
-                _buildTextField(
-                  hint: 'Email',
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                ),
-                _buildTextField(
-                  hint: 'Password',
-                  controller: _passwordController,
-                  obscureText: true,
-                ),
-                const SizedBox(height: 20),
-                Container(
-                  width: 170,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(25),
-                    boxShadow: const [
-                      BoxShadow(color: Colors.black26, blurRadius: 18, offset: Offset(0, 10)),
-                    ],
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFFF3D7F), Color(0xFFE91E63)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+                      padding: const EdgeInsets.all(10),
+                      child: Image.asset('assets/images/logo_circle.png', fit: BoxFit.contain),
                     ),
                   ),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
+                  const SizedBox(height: 16),
+                  Text(
+                    'Can Protect Foundation',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 24,
+                        ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Please login to continue',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.white.withOpacity(0.9),
+                          fontStyle: FontStyle.italic,
+                          fontSize: 14,
+                        ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  _buildTextField(
+                    hint: 'Email',
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    validator: (value) {
+                      final v = (value ?? '').trim();
+                      if (v.isEmpty) return 'Email is required.';
+                      if (!v.contains('@')) return 'Enter a valid email.';
+                      return null;
+                    },
+                  ),
+                  _buildTextField(
+                    hint: 'Password',
+                    controller: _passwordController,
+                    obscureText: _obscurePassword,
+                    validator: (value) {
+                      final v = value ?? '';
+                      if (v.isEmpty) return 'Password is required.';
+                      return null;
+                    },
+                    suffixIcon: IconButton(
+                      onPressed: () {
+                        setState(() {
+                          _obscurePassword = !_obscurePassword;
+                        });
+                      },
+                      icon: Icon(
+                        _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                        color: const Color(0xFFE91E63),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Container(
+                    width: 170,
+                    height: 50,
+                    decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(25),
-                      onTap: _loading ? null : _login,
-                      child: Center(
-                        child: _loading
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                              )
-                            : const Text(
-                                'LOGIN',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 16,
+                      boxShadow: const [
+                        BoxShadow(color: Colors.black26, blurRadius: 18, offset: Offset(0, 10)),
+                      ],
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFFF3D7F), Color(0xFFE91E63)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(25),
+                        onTap: _loading ? null : _login,
+                        child: Center(
+                          child: _loading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                )
+                              : const Text(
+                                  'LOGIN',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16,
+                                  ),
                                 ),
-                              ),
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pushNamedAndRemoveUntil('/register', (_) => false);
-                  },
-                  child: const Text(
-                    'New user? Register',
-                    style: TextStyle(color: Colors.white),
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pushNamedAndRemoveUntil('/register', (_) => false);
+                    },
+                    child: const Text(
+                      'New user? Register',
+                      style: TextStyle(color: Colors.white),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -288,13 +311,17 @@ class _LoginScreenState extends State<LoginScreen> {
     required TextEditingController controller,
     TextInputType? keyboardType,
     bool obscureText = false,
+    Widget? suffixIcon,
+    String? Function(String?)? validator,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
-      child: TextField(
+      child: TextFormField(
         controller: controller,
         keyboardType: keyboardType,
         obscureText: obscureText,
+        validator: validator,
+        autovalidateMode: AutovalidateMode.onUserInteraction,
         style: const TextStyle(color: Colors.black87),
         decoration: InputDecoration(
           hintText: hint,
@@ -302,6 +329,7 @@ class _LoginScreenState extends State<LoginScreen> {
           filled: true,
           fillColor: Colors.white,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          suffixIcon: suffixIcon,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide.none,

@@ -84,7 +84,6 @@ class BSELanguageScreen extends StatelessWidget {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('$language language selected'),
-              backgroundColor: Colors.pink,
             ),
           );
         }

@@ -174,6 +174,7 @@ class _ProfileForm extends StatefulWidget {
 }
 
 class _ProfileFormState extends State<_ProfileForm> {
+  final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
   late final TextEditingController _ageController;
   late final TextEditingController _maritalStatusController;
@@ -254,6 +255,9 @@ class _ProfileFormState extends State<_ProfileForm> {
   Future<void> _submit() async {
     if (_saving) return;
 
+    final isValid = _formKey.currentState?.validate() ?? false;
+    if (!isValid) return;
+
     final name = _nameController.text.trim();
     final email = _emailController.text.trim();
     final age = _tryParseInt(_ageController.text);
@@ -283,7 +287,7 @@ class _ProfileFormState extends State<_ProfileForm> {
       if (!isOk) {
         final message = _extractErrorMessage(response) ?? 'Failed to update profile.';
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message), backgroundColor: Colors.pink),
+          SnackBar(content: Text(message)),
         );
         return;
       }
@@ -324,64 +328,117 @@ class _ProfileFormState extends State<_ProfileForm> {
   Widget build(BuildContext context) {
     final roleName = _roleController.text.trim();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _label('Name'),
-        _field(controller: _nameController),
-        _label('Age'),
-        _field(controller: _ageController, keyboardType: TextInputType.number),
-        _label('Marital Status'),
-        _maritalStatusDropdown(),
-        _label('Mobile Number'),
-        _field(controller: _mobileController, keyboardType: TextInputType.phone),
-        _label('City'),
-        _field(controller: _cityController),
-        _label('Email Address'),
-        _field(controller: _emailController, keyboardType: TextInputType.emailAddress),
-        if (roleName.isNotEmpty) ...[
-          _label('Role'),
-          _field(controller: _roleController, readOnly: true),
-        ],
-        const SizedBox(height: 12),
-        Center(
-          child: Container(
-            width: 110,
-            height: 40,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              gradient: const LinearGradient(
-                colors: [Color(0xFFFF3D7F), Color(0xFFE91E63)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              boxShadow: const [
-                BoxShadow(color: Colors.black26, blurRadius: 18, offset: Offset(0, 10)),
-              ],
-            ),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _label('Name'),
+          _field(
+            controller: _nameController,
+            validator: (value) {
+              final v = (value ?? '').trim();
+              if (v.isEmpty) return 'Name is required.';
+              return null;
+            },
+          ),
+          _label('Age'),
+          _field(
+            controller: _ageController,
+            keyboardType: TextInputType.number,
+            validator: (value) {
+              final v = (value ?? '').trim();
+              if (v.isEmpty) return 'Age is required.';
+              final parsed = int.tryParse(v);
+              if (parsed == null) return 'Age must be a number.';
+              if (parsed <= 0) return 'Age must be greater than 0.';
+              if (parsed > 120) return 'Age must be 120 or less.';
+              return null;
+            },
+          ),
+          _label('Marital Status'),
+          _maritalStatusDropdown(),
+          _label('Mobile Number'),
+          _field(
+            controller: _mobileController,
+            keyboardType: TextInputType.phone,
+            validator: (value) {
+              final raw = (value ?? '').trim();
+              if (raw.isEmpty) return 'Mobile number is required.';
+              final digitsOnly = raw.replaceAll(RegExp(r'\\D'), '');
+              if (digitsOnly.length != raw.length) {
+                return 'Mobile number must contain digits only.';
+              }
+              if (digitsOnly.length != 10) {
+                return 'Mobile number must be 10 digits.';
+              }
+              return null;
+            },
+          ),
+          _label('City'),
+          _field(
+            controller: _cityController,
+            validator: (value) {
+              final v = (value ?? '').trim();
+              if (v.isEmpty) return 'City is required.';
+              return null;
+            },
+          ),
+          _label('Email Address'),
+          _field(
+            controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
+            validator: (value) {
+              final v = (value ?? '').trim();
+              if (v.isEmpty) return 'Email is required.';
+              if (!v.contains('@')) return 'Enter a valid email.';
+              return null;
+            },
+          ),
+          if (roleName.isNotEmpty) ...[
+            _label('Role'),
+            _field(controller: _roleController, readOnly: true),
+          ],
+          const SizedBox(height: 12),
+          Center(
+            child: Container(
+              width: 110,
+              height: 40,
+              decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(20),
-                onTap: _saving ? null : _submit,
-                child: Center(
-                  child: _saving
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                        )
-                      : const Text(
-                          'Update',
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
-                        ),
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFFF3D7F), Color(0xFFE91E63)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                boxShadow: const [
+                  BoxShadow(color: Colors.black26, blurRadius: 18, offset: Offset(0, 10)),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: _saving ? null : _submit,
+                  child: Center(
+                    child: _saving
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Text(
+                            'Update',
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
+                          ),
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -394,11 +451,14 @@ class _ProfileFormState extends State<_ProfileForm> {
     required TextEditingController controller,
     TextInputType? keyboardType,
     bool readOnly = false,
+    String? Function(String?)? validator,
   }) {
-    return TextField(
+    return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       readOnly: readOnly,
+      validator: validator,
+      autovalidateMode: AutovalidateMode.onUserInteraction,
       style: const TextStyle(color: Colors.black87, fontSize: 14),
       decoration: InputDecoration(
         isDense: true,
@@ -418,6 +478,12 @@ class _ProfileFormState extends State<_ProfileForm> {
       initialValue: _selectedMaritalStatus,
       isExpanded: true,
       icon: const Icon(Icons.arrow_drop_down, color: Color(0xFFE91E63)),
+      autovalidateMode: AutovalidateMode.onUserInteraction,
+      validator: (value) {
+        final v = (value ?? '').trim();
+        if (v.isEmpty) return 'Marital status is required.';
+        return null;
+      },
       decoration: InputDecoration(
         isDense: true,
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),

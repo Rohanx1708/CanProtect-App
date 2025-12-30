@@ -46,9 +46,8 @@ class _BaseScreenState extends State<BaseScreen> {
     }
   }
 
-  Future<void> _logout(BuildContext dialogContext) async {
+  Future<void> _performLogout() async {
     final navigator = Navigator.of(context);
-    Navigator.of(dialogContext).pop();
 
     Map<String, dynamic>? response;
     try {
@@ -69,13 +68,51 @@ class _BaseScreenState extends State<BaseScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Logout failed on server. You have been logged out locally.'),
-            backgroundColor: Colors.pink,
           ),
         );
       }
     }
 
     navigator.pushNamedAndRemoveUntil('/login', (_) => false);
+  }
+
+  Future<void> _confirmLogout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          title: const Text(
+            'Logout',
+            style: TextStyle(color: Color(0xFFE91E63), fontWeight: FontWeight.w700),
+          ),
+          content: const Text(
+            'Are you sure you want to logout?',
+            style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w500),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancel', style: TextStyle(color: Colors.black54)),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFE91E63),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              child: const Text('Logout'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true) {
+      await _performLogout();
+    }
   }
 
   @override
@@ -99,7 +136,7 @@ class _BaseScreenState extends State<BaseScreen> {
                           MaterialPageRoute(builder: (_) => const ProfileScreen()),
                         );
                       },
-                      child: Image.asset('assets/images/profile_icon.png', width: 35, height: 35),
+                      child: Image.asset('assets/images/profile_icon.png', width: 32, height: 32),
                     ),
                     if (widget.showTitleInTopBar && widget.title != null)
                       Text(
@@ -148,7 +185,6 @@ class _BaseScreenState extends State<BaseScreen> {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(label),
-                                  backgroundColor: Colors.pink,
                                 ),
                               );
                             }
@@ -184,7 +220,13 @@ class _BaseScreenState extends State<BaseScreen> {
                                       },
                                     ),
                                     const SizedBox(height: 8),
-                                    buildMenuButton('Logout', () => _logout(dialogContext)),
+                                    buildMenuButton(
+                                      'Logout',
+                                      () {
+                                        Navigator.of(dialogContext).pop();
+                                        _confirmLogout();
+                                      },
+                                    ),
                                     const SizedBox(height: 8),
                                     buildMenuButton(
                                       'Close',
@@ -197,7 +239,7 @@ class _BaseScreenState extends State<BaseScreen> {
                           },
                         );
                       },
-                      child: Image.asset('assets/images/sub_menu_icon.png', width: 35, height: 35),
+                      child: Image.asset('assets/images/sub_menu_icon.png', width: 32, height: 32),
                     ),
                   ],
                 ),
@@ -206,7 +248,7 @@ class _BaseScreenState extends State<BaseScreen> {
             
             // Border Image with Content
             Align(
-              alignment: const Alignment(0, -0.07),
+              alignment: const Alignment(0, -0.2),
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final double targetWidth = constraints.maxWidth * 0.8;
@@ -236,15 +278,15 @@ class _BaseScreenState extends State<BaseScreen> {
             // Bottom Section with Donate and Volunteer Buttons
             if (widget.showBottomButtons)
               Align(
-                alignment: const Alignment(0, 0.8),
+                alignment: const Alignment(0, 0.82),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 32),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Image.asset('assets/images/donate_button.png', height: 36, fit: BoxFit.contain),
+                      Image.asset('assets/images/donate_button.png', height: 32, fit: BoxFit.contain),
                       const SizedBox(width: 16),
-                      Image.asset('assets/images/volunteer_button.png', height: 36, fit: BoxFit.contain),
+                      Image.asset('assets/images/volunteer_button.png', height: 32, fit: BoxFit.contain),
                     ],
                   ),
                 ),
@@ -254,26 +296,26 @@ class _BaseScreenState extends State<BaseScreen> {
             if (widget.showSideIcons) ...[
               Align(
                 alignment: const Alignment(-0.91, 0.87),
-                child: Image.asset('assets/images/web_icon.png', height: 42, fit: BoxFit.contain),
+                child: Image.asset('assets/images/web_icon.png', height: 38, fit: BoxFit.contain),
               ),
               Align(
                 alignment: const Alignment(0.91, 0.87),
-                child: Image.asset('assets/images/phone_icon.png', height: 42, fit: BoxFit.contain),
+                child: Image.asset('assets/images/phone_icon.png', height: 38, fit: BoxFit.contain),
               ),
             ],
             
             // Social Icons
             if (widget.showSocialIcons)
               Align(
-                alignment: const Alignment(0, 0.93),
+                alignment: const Alignment(0, 0.94),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Image.asset('assets/images/facebook_icon.png', height: 32, fit: BoxFit.contain),
+                    Image.asset('assets/images/facebook_icon.png', height: 30, fit: BoxFit.contain),
                     const SizedBox(width: 24),
-                    Image.asset('assets/images/instagram_icon.png', height: 32, fit: BoxFit.contain),
+                    Image.asset('assets/images/instagram_icon.png', height: 30, fit: BoxFit.contain),
                     const SizedBox(width: 24),
-                    Image.asset('assets/images/twitter_icon.png', height: 32, fit: BoxFit.contain),
+                    Image.asset('assets/images/twitter_icon.png', height: 30, fit: BoxFit.contain),
                   ],
                 ),
               ),

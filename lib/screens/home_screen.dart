@@ -13,8 +13,8 @@ class HomeScreen extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 50,
-        height: 50,
+        width: 40,
+        height: 40,
         decoration: const BoxDecoration(
           shape: BoxShape.circle,
         ),
@@ -37,9 +37,10 @@ class HomeScreen extends StatelessWidget {
       content: SingleChildScrollView(
         child: Column(
           children: [
+            const SizedBox(height: 16),
             // HOME Title
             const Align(
-              alignment: Alignment(0, -1.0),
+              alignment: Alignment(0, -0.0),
               child: Text(
                 'HOME',
                 style: TextStyle(
@@ -50,13 +51,10 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
             ),
-
-            const SizedBox(height: 2),
-
             // Circles grid
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 12),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
                 color: Colors.transparent,
                 borderRadius: BorderRadius.circular(12),
@@ -65,44 +63,49 @@ class HomeScreen extends StatelessWidget {
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 crossAxisCount: 2,
-                mainAxisSpacing: 10,
-                crossAxisSpacing: 10,
-                childAspectRatio: 1.0,
+                mainAxisSpacing: 8,
+                crossAxisSpacing: 12,
+                childAspectRatio: 1.04,
                 children: [
                   _homeCircle('assets/images/first_home.png', onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => BSELanguageScreen()),
+                      MaterialPageRoute(
+                          builder: (context) => BSELanguageScreen()),
                     );
                   }),
                   _homeCircle('assets/images/second_home.png', onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const HealthProfileScreen()),
+                      MaterialPageRoute(
+                          builder: (context) => const HealthProfileScreen()),
                     );
                   }),
                   _homeCircle('assets/images/second_home_new.png',
-                      onTap: () => Navigator.pushNamed(context, '/health_history')),
+                      onTap: () =>
+                          Navigator.pushNamed(context, '/health_history')),
                   _homeCircle('assets/images/fourth_home.png',
                       onTap: () => Navigator.pushNamed(context, '/reminders')),
                   _homeCircle('assets/images/fifth_home.png', onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const BreastCancerScreen()),
+                      MaterialPageRoute(
+                          builder: (context) => const BreastCancerScreen()),
                     );
                   }),
                   _homeCircle('assets/images/sixth_home.png', onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const CervicalCancerScreen()),
+                      MaterialPageRoute(
+                          builder: (context) => const CervicalCancerScreen()),
                     );
                   }),
                   _homeCircle('assets/images/seventh_home.png',
-                      onTap: () =>
-                          _launchExternalUrl('http://canprotectfoundation.com/upcoming-programs/')),
+                      onTap: () => _launchExternalUrl(
+                          'http://canprotectfoundation.com/upcoming-programs/')),
                   _homeCircle('assets/images/eightth_home.png',
-                      onTap: () =>
-                          _launchExternalUrl('http://canprotectfoundation.com/programs-update/')),
+                      onTap: () => _launchExternalUrl(
+                          'http://canprotectfoundation.com/programs-update/')),
                 ],
               ),
             ),

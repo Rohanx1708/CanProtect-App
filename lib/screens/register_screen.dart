@@ -15,6 +15,7 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
+  final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _ageController = TextEditingController();
   final _maritalController = TextEditingController();
@@ -25,6 +26,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _confirmPasswordController = TextEditingController();
   bool _loading = false;
   String? _selectedMaritalStatus;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   static const List<String> _maritalStatusOptions = <String>[
     'Single',
@@ -47,6 +50,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _register() async {
+    final isValid = _formKey.currentState?.validate() ?? false;
+    if (!isValid) return;
+
     final name = _nameController.text.trim();
     final age = _ageController.text.trim();
     final marital = (_selectedMaritalStatus ?? _maritalController.text).trim();
@@ -57,40 +63,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final passwordConfirmation = _confirmPasswordController.text;
     final parsedAge = int.tryParse(age);
 
-    if (name.isEmpty || mobile.isEmpty || email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill at least Name, Mobile Number and Email.')),
-      );
-      return;
-    }
-
-    if (age.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter age.')),
-      );
-      return;
-    }
-
-    if (parsedAge == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Age must be a number.')),
-      );
-      return;
-    }
-
-    if (password.isEmpty || passwordConfirmation.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter password and confirm password.')),
-      );
-      return;
-    }
-
-    if (password != passwordConfirmation) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password and confirmation do not match.')),
-      );
-      return;
-    }
+    if (parsedAge == null) return;
 
     setState(() {
       _loading = true;
@@ -184,134 +157,215 @@ class _RegisterScreenState extends State<RegisterScreen> {
         child: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const SizedBox(height: 16),
-                Center(
-                  child: Container(
-                    width: 90,
-                    height: 90,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.9),
-                      shape: BoxShape.circle,
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Colors.black26,
-                          blurRadius: 12,
-                          offset: Offset(0, 6),
-                        ),
-                        BoxShadow(
-                          color: Colors.black12,
-                          blurRadius: 24,
-                          spreadRadius: 2,
-                          offset: Offset(0, 10),
-                        ),
-                      ],
-                    ),
-                    padding: const EdgeInsets.all(10),
-                    child: Image.asset('assets/images/logo_circle.png', fit: BoxFit.contain),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Can Protect Foundation',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 24,
-                      ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'an initiative by Dr. Sumita Prabhakar',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 16),
+                  Center(
+                    child: Container(
+                      width: 90,
+                      height: 90,
+                      decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.9),
-                        fontStyle: FontStyle.italic,
-                        fontSize: 14,
+                        shape: BoxShape.circle,
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Colors.black26,
+                            blurRadius: 12,
+                            offset: Offset(0, 6),
+                          ),
+                          BoxShadow(
+                            color: Colors.black12,
+                            blurRadius: 24,
+                            spreadRadius: 2,
+                            offset: Offset(0, 10),
+                          ),
+                        ],
                       ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 24),
-                _buildTextField(hint: 'Your Name', controller: _nameController),
-                _buildTextField(
-                  hint: 'Age',
-                  controller: _ageController,
-                  keyboardType: TextInputType.number,
-                ),
-                _buildMaritalStatusDropdown(),
-                _buildTextField(
-                  hint: 'Mobile Number',
-                  controller: _mobileController,
-                  keyboardType: TextInputType.phone,
-                ),
-                _buildTextField(
-                  hint: 'Email',
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                ),
-                _buildTextField(hint: 'City', controller: _cityController),
-                _buildTextField(
-                  hint: 'Password',
-                  controller: _passwordController,
-                  obscureText: true,
-                ),
-                _buildTextField(
-                  hint: 'Confirm Password',
-                  controller: _confirmPasswordController,
-                  obscureText: true,
-                ),
-                const SizedBox(height: 20),
-                Container(
-                  width: 170,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(25),
-                    boxShadow: const [
-                      BoxShadow(color: Colors.black26, blurRadius: 18, offset: Offset(0, 10)),
-                    ],
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFFF3D7F), Color(0xFFE91E63)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+                      padding: const EdgeInsets.all(10),
+                      child: Image.asset('assets/images/logo_circle.png', fit: BoxFit.contain),
                     ),
                   ),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
+                  const SizedBox(height: 16),
+                  Text(
+                    'Can Protect Foundation',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 24,
+                        ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'an initiative by Dr. Sumita Prabhakar',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.white.withOpacity(0.9),
+                          fontStyle: FontStyle.italic,
+                          fontSize: 14,
+                        ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  _buildTextField(
+                    hint: 'Your Name',
+                    controller: _nameController,
+                    validator: (value) {
+                      final v = (value ?? '').trim();
+                      if (v.isEmpty) return 'Name is required.';
+                      return null;
+                    },
+                  ),
+                  _buildTextField(
+                    hint: 'Age',
+                    controller: _ageController,
+                    keyboardType: TextInputType.number,
+                    validator: (value) {
+                      final v = (value ?? '').trim();
+                      if (v.isEmpty) return 'Age is required.';
+                      final parsed = int.tryParse(v);
+                      if (parsed == null) return 'Age must be a number.';
+                      if (parsed <= 0) return 'Age must be greater than 0.';
+                      if (parsed > 120) return 'Age must be 120 or less.';
+                      return null;
+                    },
+                  ),
+                  _buildMaritalStatusDropdown(),
+                  _buildTextField(
+                    hint: 'Mobile Number',
+                    controller: _mobileController,
+                    keyboardType: TextInputType.phone,
+                    validator: (value) {
+                      final raw = (value ?? '').trim();
+                      if (raw.isEmpty) return 'Mobile number is required.';
+
+                      final digitsOnly = raw.replaceAll(RegExp(r'\D'), '');
+                      if (digitsOnly.length != raw.length) {
+                        return 'Mobile number must contain digits only.';
+                      }
+                      if (digitsOnly.length != 10) {
+                        return 'Mobile number must be 10 digits.';
+                      }
+                      return null;
+                    },
+                  ),
+                  _buildTextField(
+                    hint: 'Email',
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    validator: (value) {
+                      final v = (value ?? '').trim();
+                      if (v.isEmpty) return 'Email is required.';
+                      if (!v.contains('@')) return 'Enter a valid email.';
+                      return null;
+                    },
+                  ),
+                  _buildTextField(
+                    hint: 'City',
+                    controller: _cityController,
+                    validator: (value) {
+                      final v = (value ?? '').trim();
+                      if (v.isEmpty) return 'City is required.';
+                      return null;
+                    },
+                  ),
+                  _buildTextField(
+                    hint: 'Password',
+                    controller: _passwordController,
+                    obscureText: _obscurePassword,
+                    validator: (value) {
+                      final v = value ?? '';
+                      if (v.isEmpty) return 'Password is required.';
+                      if (v.length < 6) return 'Password must be at least 6 characters.';
+                      return null;
+                    },
+                    suffixIcon: IconButton(
+                      onPressed: () {
+                        setState(() {
+                          _obscurePassword = !_obscurePassword;
+                        });
+                      },
+                      icon: Icon(
+                        _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                        color: const Color(0xFFE91E63),
+                      ),
+                    ),
+                  ),
+                  _buildTextField(
+                    hint: 'Confirm Password',
+                    controller: _confirmPasswordController,
+                    obscureText: _obscureConfirmPassword,
+                    validator: (value) {
+                      final v = value ?? '';
+                      if (v.isEmpty) return 'Confirm password is required.';
+                      if (v != _passwordController.text) return 'Passwords do not match.';
+                      return null;
+                    },
+                    suffixIcon: IconButton(
+                      onPressed: () {
+                        setState(() {
+                          _obscureConfirmPassword = !_obscureConfirmPassword;
+                        });
+                      },
+                      icon: Icon(
+                        _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
+                        color: const Color(0xFFE91E63),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Container(
+                    width: 170,
+                    height: 50,
+                    decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(25),
-                      onTap: _loading ? null : _register,
-                      child: Center(
-                        child: _loading
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                              )
-                            : const Text(
-                                'REGISTER',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 16,
+                      boxShadow: const [
+                        BoxShadow(color: Colors.black26, blurRadius: 18, offset: Offset(0, 10)),
+                      ],
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFFF3D7F), Color(0xFFE91E63)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(25),
+                        onTap: _loading ? null : _register,
+                        child: Center(
+                          child: _loading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                )
+                              : const Text(
+                                  'REGISTER',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16,
+                                  ),
                                 ),
-                              ),
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
-                  },
-                  child: const Text(
-                    'Already registered? Login',
-                    style: TextStyle(color: Colors.white),
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
+                    },
+                    child: const Text(
+                      'Already registered? Login',
+                      style: TextStyle(color: Colors.white),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -324,13 +378,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
     required TextEditingController controller,
     TextInputType? keyboardType,
     bool obscureText = false,
+    Widget? suffixIcon,
+    String? Function(String?)? validator,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
-      child: TextField(
+      child: TextFormField(
         controller: controller,
         keyboardType: keyboardType,
         obscureText: obscureText,
+        validator: validator,
+        autovalidateMode: AutovalidateMode.onUserInteraction,
         style: const TextStyle(color: Colors.black87),
         decoration: InputDecoration(
           hintText: hint,
@@ -338,6 +396,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           filled: true,
           fillColor: Colors.white,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          suffixIcon: suffixIcon,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide.none,
@@ -355,6 +414,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
         isExpanded: true,
         icon: const Icon(Icons.arrow_drop_down, color: Color(0xFFE91E63)),
         hint: const Text('Marital Status', style: TextStyle(color: Color(0xFFE91E63))),
+        autovalidateMode: AutovalidateMode.onUserInteraction,
+        validator: (value) {
+          final v = (value ?? '').trim();
+          if (v.isEmpty) return 'Marital status is required.';
+          return null;
+        },
         decoration: InputDecoration(
           filled: true,
           fillColor: Colors.white,

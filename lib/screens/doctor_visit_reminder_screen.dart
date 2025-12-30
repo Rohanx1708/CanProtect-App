@@ -226,7 +226,6 @@ class _DoctorVisitReminderScreenState extends State<DoctorVisitReminderScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Reminder scheduled successfully!'),
-                backgroundColor: Colors.pink,
               ),
             );
             Navigator.pop(context);

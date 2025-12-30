@@ -89,15 +89,27 @@ class _HealthHistoryDetailScreenState extends State<HealthHistoryDetailScreen> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Delete'),
-          content: const Text('Are you sure you want to delete this health profile?'),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          title: const Text(
+            'Delete',
+            style: TextStyle(color: Color(0xFFE91E63), fontWeight: FontWeight.w700),
+          ),
+          content: const Text(
+            'Are you sure you want to delete this health profile?',
+            style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w500),
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Cancel'),
+              child: const Text('Cancel', style: TextStyle(color: Colors.black54)),
             ),
-            TextButton(
+            ElevatedButton(
               onPressed: () => Navigator.of(dialogContext).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFE91E63),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
               child: const Text('Delete'),
             ),
           ],

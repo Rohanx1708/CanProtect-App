@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../core/constants/app_constants.dart';
 import '../widgets/base_screen.dart';
 import 'bse_marking_screen.dart';
+import 'health_history_screen.dart';
 import '../services/health_profile_service.dart';
 
 class HealthProfileScreen extends StatefulWidget {
@@ -114,17 +115,17 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
     });
   }
 
-  Future<void> _saveHealthProfile() async {
+  Future<bool> _saveHealthProfile() async {
     final prefs = await SharedPreferences.getInstance();
 
     final fallbackUserId = (widget.initialRecord?['user_id'] ?? '').toString();
     final userId = _getUserIdForApi(prefs) ?? (fallbackUserId.trim().isEmpty ? null : fallbackUserId);
     if (userId == null || userId.trim().isEmpty) {
-      if (!mounted) return;
+      if (!mounted) return false;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('User not found. Please login again (missing user id).')),
       );
-      return;
+      return false;
     }
 
     final papIso = _toApiDate(_papSmearController.text);
@@ -162,11 +163,11 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
     final isOk = statusCode == 200 || statusCode == 201;
     if (!isOk) {
       final message = _extractErrorMessage(apiResponse) ?? 'Failed to save health profile.';
-      if (!mounted) return;
+      if (!mounted) return false;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message)),
       );
-      return;
+      return false;
     }
 
     final record = <String, dynamic>{
@@ -191,9 +192,12 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
     await prefs.setString(_healthHistoryPrefsKey, jsonEncode(existingList));
 
     if (widget.healthProfileId != null && widget.healthProfileId!.trim().isNotEmpty) {
-      if (!mounted) return;
+      if (!mounted) return false;
       Navigator.of(context).pop(true);
+      return true;
     }
+
+    return true;
   }
 
   String? _getUserIdForApi(SharedPreferences prefs) {
@@ -283,6 +287,34 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
       initialDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFFE91E63),
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: Colors.black87,
+              surfaceTint: Color(0xFFE91E63),
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFFE91E63),
+              ),
+            ),
+            dialogTheme: const DialogThemeData(
+              backgroundColor: Colors.white,
+            ),
+          ),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.4,
+              maxWidth: MediaQuery.of(context).size.width * 0.8,
+            ),
+            child: child!,
+          ),
+        );
+      },
     );
     if (picked != null) {
       setState(() {
@@ -542,11 +574,15 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
         child: InkWell(
           borderRadius: BorderRadius.circular(25),
           onTap: () async {
-            await _saveHealthProfile();
+            final ok = await _saveHealthProfile();
             if (!mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Health profile saved!')),
-            );
+            if (!ok) return;
+
+            if (widget.healthProfileId == null || widget.healthProfileId!.trim().isEmpty) {
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (_) => const HealthHistoryScreen()),
+              );
+            }
           },
           child: const Center(
             child: Text(

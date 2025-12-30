@@ -5,7 +5,7 @@ class Helpers {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: color ?? Colors.red,
+        backgroundColor: color,
         duration: const Duration(seconds: 3),
       ),
     );

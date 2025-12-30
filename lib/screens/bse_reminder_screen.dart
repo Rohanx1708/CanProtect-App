@@ -226,7 +226,6 @@ class _BSEReminderScreenState extends State<BSEReminderScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('BSE Reminder scheduled successfully!'),
-                backgroundColor: Colors.pink,
               ),
             );
             Navigator.pop(context);

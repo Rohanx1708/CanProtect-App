@@ -16,6 +16,19 @@ class AppTheme {
       primarySwatch: Colors.pink,
       primaryColor: primaryColor,
       scaffoldBackgroundColor: backgroundColor,
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: primaryColor,
+        contentTextStyle: const TextStyle(
+          color: textWhite,
+          fontWeight: FontWeight.w600,
+          fontSize: 14,
+        ),
+        behavior: SnackBarBehavior.floating,
+        elevation: 10,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
       appBarTheme: const AppBarTheme(
         backgroundColor: primaryColor,
         foregroundColor: textWhite,
