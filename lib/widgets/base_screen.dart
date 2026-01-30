@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../widgets/app_background.dart';
 import '../screens/profile_screen.dart';
 import '../screens/change_password_screen.dart';
+import '../screens/founder_screen.dart';
+import '../screens/our_story_screen.dart';
 import '../services/logout_service.dart';
 import '../core/constants/app_constants.dart';
 
@@ -35,6 +38,16 @@ class _BaseScreenState extends State<BaseScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _ensureLoggedIn();
     });
+  }
+
+  Future<void> _launchExternalUrl(String url) async {
+    final uri = Uri.parse(url);
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
+  Future<void> _launchDialer(String phoneNumber) async {
+    final uri = Uri(scheme: 'tel', path: phoneNumber);
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
   Future<void> _ensureLoggedIn() async {
@@ -201,14 +214,49 @@ class _BaseScreenState extends State<BaseScreen> {
                                   children: [
                                     buildMenuButton(
                                       'How to use this app?',
-                                      () => showNotReady('How to use this app?'),
+                                      () {
+                                        Navigator.of(dialogContext).pop();
+                                        _launchExternalUrl(
+                                          'https://canprotectfoundation.com/how-to-use-canapp/',
+                                        );
+                                      },
                                     ),
                                     const SizedBox(height: 8),
-                                    buildMenuButton('Our Story', () => showNotReady('Our Story')),
+                                    buildMenuButton(
+                                      'Our Story',
+                                      () {
+                                        Navigator.of(dialogContext).pop();
+                                        Future.microtask(() {
+                                          if (!mounted) return;
+                                          Navigator.of(context).push(
+                                            MaterialPageRoute(builder: (_) => const OurStoryScreen()),
+                                          );
+                                        });
+                                      },
+                                    ),
                                     const SizedBox(height: 8),
-                                    buildMenuButton('Founder', () => showNotReady('Founder')),
+                                    buildMenuButton(
+                                      'Founder',
+                                      () {
+                                        Navigator.of(dialogContext).pop();
+                                        Future.microtask(() {
+                                          if (!mounted) return;
+                                          Navigator.of(context).push(
+                                            MaterialPageRoute(builder: (_) => const FounderScreen()),
+                                          );
+                                        });
+                                      },
+                                    ),
                                     const SizedBox(height: 8),
-                                    buildMenuButton('Contact us', () => showNotReady('Contact us')),
+                                    buildMenuButton(
+                                      'Contact us',
+                                      () {
+                                        Navigator.of(dialogContext).pop();
+                                        _launchExternalUrl(
+                                          'https://canprotectfoundation.com/contact-us/',
+                                        );
+                                      },
+                                    ),
                                     const SizedBox(height: 8),
                                     buildMenuButton(
                                       'Change Password',
@@ -284,9 +332,27 @@ class _BaseScreenState extends State<BaseScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Image.asset('assets/images/donate_button.png', height: 32, fit: BoxFit.contain),
+                      GestureDetector(
+                        onTap: () {
+                          _launchExternalUrl('https://canprotectfoundation.com/donate/');
+                        },
+                        child: Image.asset(
+                          'assets/images/donate_button.png',
+                          height: 32,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
                       const SizedBox(width: 16),
-                      Image.asset('assets/images/volunteer_button.png', height: 32, fit: BoxFit.contain),
+                      GestureDetector(
+                        onTap: () {
+                          _launchExternalUrl('https://canprotectfoundation.com/become-a-volunteer/');
+                        },
+                        child: Image.asset(
+                          'assets/images/volunteer_button.png',
+                          height: 32,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -300,7 +366,12 @@ class _BaseScreenState extends State<BaseScreen> {
               ),
               Align(
                 alignment: const Alignment(0.91, 0.87),
-                child: Image.asset('assets/images/phone_icon.png', height: 38, fit: BoxFit.contain),
+                child: GestureDetector(
+                  onTap: () {
+                    _launchDialer('+917505712063');
+                  },
+                  child: Image.asset('assets/images/phone_icon.png', height: 38, fit: BoxFit.contain),
+                ),
               ),
             ],
             

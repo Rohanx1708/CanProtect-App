@@ -4,10 +4,47 @@ import 'package:canprotect_flutter/screens/cervical_cancer_screen.dart';
 import 'package:canprotect_flutter/screens/breast_cancer_screen.dart';
 import 'package:canprotect_flutter/screens/bse_language_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../services/health_profile_service.dart';
 import '../widgets/base_screen.dart';
+import 'health_history_detail_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
+
+  Future<void> _openHealthProfile(BuildContext context) async {
+    try {
+      final response = await HealthProfileService.fetchHealthProfiles(page: 1);
+      final statusCode = response['statusCode'];
+      final isOk = statusCode == 200 || statusCode == 201;
+
+      if (isOk) {
+        final data = response['data'];
+        if (data is Map) {
+          final list = data['data'];
+          if (list is List && list.isNotEmpty) {
+            final first = list.first;
+            if (first is Map) {
+              final record = first.map((key, value) => MapEntry(key.toString(), value));
+              if (!context.mounted) return;
+              await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => HealthHistoryDetailScreen(record: record),
+                ),
+              );
+              return;
+            }
+          }
+        }
+      }
+    } catch (_) {
+      // Fall back to opening the form.
+    }
+
+    if (!context.mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => const HealthProfileScreen()),
+    );
+  }
 
   Widget _homeCircle(String assetPath, {VoidCallback? onTap}) {
     return GestureDetector(
@@ -75,11 +112,7 @@ class HomeScreen extends StatelessWidget {
                     );
                   }),
                   _homeCircle('assets/images/second_home.png', onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const HealthProfileScreen()),
-                    );
+                    _openHealthProfile(context);
                   }),
                   _homeCircle('assets/images/second_home_new.png',
                       onTap: () =>
