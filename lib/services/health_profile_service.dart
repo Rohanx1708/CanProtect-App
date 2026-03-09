@@ -16,7 +16,7 @@ class HealthProfileService {
     required String recentMammography,
     required String gynVisit,
     required String period,
-    required String baseFindings,
+    String? baseFindings,
     String? markedImagePath,
   }) async {
     final prefs = await SharedPreferences.getInstance();
@@ -38,7 +38,11 @@ class HealthProfileService {
     request.fields['recent_mammography'] = recentMammography;
     request.fields['gyn_visit'] = gynVisit;
     request.fields['period'] = period;
-    request.fields['base_findings'] = baseFindings;
+
+    final findings = baseFindings?.trim();
+    if (findings != null && findings.isNotEmpty) {
+      request.fields['base_findings'] = findings;
+    }
 
     final path = markedImagePath?.trim();
     if (path != null && path.isNotEmpty) {
@@ -55,6 +59,176 @@ class HealthProfileService {
 
     final streamed = await request.send();
     final response = await http.Response.fromStream(streamed);
+
+    Map<String, dynamic> decoded;
+    try {
+      final body = jsonDecode(response.body);
+      decoded = body is Map<String, dynamic> ? body : <String, dynamic>{'data': body};
+    } catch (_) {
+      decoded = <String, dynamic>{'raw': response.body};
+    }
+
+    decoded['statusCode'] = response.statusCode;
+    return decoded;
+  }
+
+  static Future<Map<String, dynamic>> updateBseFinding({
+    required String patientId,
+    required String id,
+    required String baseFindings,
+    String? notes,
+    String? markedImagePath,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString(AppConstants.userTokenKey);
+
+    final uri = Uri.parse(
+      '${AppConstants.baseUrl}/api/v1/patients/$patientId/bse-findings/$id',
+    );
+
+    Future<http.Response> sendMultipart(String method, {bool useMethodOverride = false}) async {
+      final request = http.MultipartRequest(method, uri);
+      request.headers['Accept'] = 'application/json';
+      if (token != null && token.trim().isNotEmpty) {
+        request.headers['Authorization'] = 'Bearer ${token.trim()}';
+      }
+
+      if (useMethodOverride) {
+        request.fields['_method'] = 'PUT';
+      }
+
+      request.fields['base_findings'] = baseFindings;
+      if (notes != null) {
+        request.fields['notes'] = notes;
+      }
+
+      final path = markedImagePath?.trim();
+      if (path != null && path.isNotEmpty) {
+        final file = File(path);
+        if (await file.exists()) {
+          request.files.add(
+            await http.MultipartFile.fromPath(
+              'marked_image',
+              path,
+            ),
+          );
+        }
+      }
+
+      final streamed = await request.send();
+      return http.Response.fromStream(streamed);
+    }
+
+    final response = await sendMultipart('POST', useMethodOverride: true);
+
+    Map<String, dynamic> decoded;
+    try {
+      final body = jsonDecode(response.body);
+      decoded = body is Map<String, dynamic> ? body : <String, dynamic>{'data': body};
+    } catch (_) {
+      decoded = <String, dynamic>{'raw': response.body};
+    }
+
+    decoded['statusCode'] = response.statusCode;
+    return decoded;
+  }
+
+  static Future<Map<String, dynamic>> fetchBseFindings({required String patientId}) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString(AppConstants.userTokenKey);
+
+    final uri = Uri.parse(
+      '${AppConstants.baseUrl}/api/v1/patients/$patientId/bse-findings',
+    );
+
+    final headers = <String, String>{
+      'Accept': 'application/json',
+    };
+
+    if (token != null && token.trim().isNotEmpty) {
+      headers['Authorization'] = 'Bearer ${token.trim()}';
+    }
+
+    final response = await http.get(uri, headers: headers);
+
+    Map<String, dynamic> decoded;
+    try {
+      final body = jsonDecode(response.body);
+      decoded = body is Map<String, dynamic> ? body : <String, dynamic>{'data': body};
+    } catch (_) {
+      decoded = <String, dynamic>{'raw': response.body};
+    }
+
+    decoded['statusCode'] = response.statusCode;
+    return decoded;
+  }
+
+  static Future<Map<String, dynamic>> createBseFinding({
+    required String patientId,
+    required String baseFindings,
+    required String markedImagePath,
+    String? notes,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString(AppConstants.userTokenKey);
+
+    final uri = Uri.parse(
+      '${AppConstants.baseUrl}/api/v1/patients/$patientId/bse-findings',
+    );
+
+    final request = http.MultipartRequest('POST', uri);
+    request.headers['Accept'] = 'application/json';
+    if (token != null && token.trim().isNotEmpty) {
+      request.headers['Authorization'] = 'Bearer ${token.trim()}';
+    }
+
+    request.fields['base_findings'] = baseFindings;
+    final trimmedNotes = notes?.trim();
+    if (trimmedNotes != null && trimmedNotes.isNotEmpty) {
+      request.fields['notes'] = trimmedNotes;
+    }
+
+    final path = markedImagePath.trim();
+    final file = File(path);
+    if (await file.exists()) {
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'marked_image',
+          path,
+        ),
+      );
+    }
+
+    final streamed = await request.send();
+    final response = await http.Response.fromStream(streamed);
+
+    Map<String, dynamic> decoded;
+    try {
+      final body = jsonDecode(response.body);
+      decoded = body is Map<String, dynamic> ? body : <String, dynamic>{'data': body};
+    } catch (_) {
+      decoded = <String, dynamic>{'raw': response.body};
+    }
+
+    decoded['statusCode'] = response.statusCode;
+    return decoded;
+  }
+
+  static Future<Map<String, dynamic>> fetchHealthProfileById({required String id}) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString(AppConstants.userTokenKey);
+
+    final uri = Uri.parse('${AppConstants.baseUrl}/api/v1/health-profiles/$id');
+
+    final headers = <String, String>{
+      'Accept': 'application/json',
+    };
+
+    if (token != null && token.trim().isNotEmpty) {
+      headers['Authorization'] = 'Bearer ${token.trim()}';
+    }
+
+    final response = await http.get(uri, headers: headers);
 
     Map<String, dynamic> decoded;
     try {
@@ -78,7 +252,7 @@ class HealthProfileService {
     required String recentMammography,
     required String gynVisit,
     required String period,
-    required String baseFindings,
+    String? baseFindings,
     String? markedImagePath,
   }) async {
     final prefs = await SharedPreferences.getInstance();
@@ -102,7 +276,11 @@ class HealthProfileService {
     request.fields['recent_mammography'] = recentMammography;
     request.fields['gyn_visit'] = gynVisit;
     request.fields['period'] = period;
-    request.fields['base_findings'] = baseFindings;
+
+    final findings = baseFindings?.trim();
+    if (findings != null && findings.isNotEmpty) {
+      request.fields['base_findings'] = findings;
+    }
 
     final path = markedImagePath?.trim();
     if (path != null && path.isNotEmpty) {
@@ -132,11 +310,13 @@ class HealthProfileService {
     return decoded;
   }
 
-  static Future<Map<String, dynamic>> fetchHealthProfiles({int page = 1}) async {
+  static Future<Map<String, dynamic>> fetchHealthProfiles({int page = 1, int perPage = 10}) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString(AppConstants.userTokenKey);
 
-    final uri = Uri.parse('${AppConstants.baseUrl}/api/v1/health-profiles?page=$page');
+    final uri = Uri.parse(
+      '${AppConstants.baseUrl}/api/v1/health-profiles?page=$page&per_page=$perPage',
+    );
 
     final headers = <String, String>{
       'Accept': 'application/json',

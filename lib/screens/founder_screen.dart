@@ -19,7 +19,8 @@ class FounderScreen extends StatelessWidget {
                   children: [
                     IconButton(
                       onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.arrow_back, color: Color(0xFFE91E63)),
+                      icon: const Icon(Icons.arrow_back,
+                          color: Color(0xFFE91E63)),
                     ),
                     const SizedBox(width: 6),
                     const Text(

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
+import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/services.dart';
 import '../core/constants/app_constants.dart';
 import '../widgets/base_screen.dart';
 import 'bse_marking_screen.dart';
@@ -32,6 +34,7 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
   final _breastExamController = TextEditingController();
   List<BseMarker> _bseMarkers = const [];
   String? _bseMarkedImagePath;
+  bool _saving = false;
 
   @override
   void initState() {
@@ -115,6 +118,19 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
     });
   }
 
+  Future<String?> _ensurePlaceholderMarkedImage() async {
+    try {
+      final byteData = await rootBundle.load('assets/images/bg_light.png');
+      final bytes = byteData.buffer.asUint8List();
+      final dir = Directory.systemTemp;
+      final file = File('${dir.path}${Platform.pathSeparator}canprotect_marked_image_placeholder.png');
+      await file.writeAsBytes(bytes, flush: true);
+      return file.path;
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<bool> _saveHealthProfile() async {
     final prefs = await SharedPreferences.getInstance();
 
@@ -132,6 +148,16 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
     final mammoIso = _toApiDate(_mammographyController.text);
     final gynIso = _toApiDate(_gynVisitController.text);
 
+    final isEditing = widget.healthProfileId != null && widget.healthProfileId!.trim().isNotEmpty;
+    final baseFindings = (!isEditing && _breastExamController.text.trim().isEmpty)
+        ? 'NA'
+        : _breastExamController.text.trim();
+
+    String? effectiveMarkedImagePath = _bseMarkedImagePath;
+    if (!isEditing && (effectiveMarkedImagePath == null || effectiveMarkedImagePath.trim().isEmpty)) {
+      effectiveMarkedImagePath = await _ensurePlaceholderMarkedImage();
+    }
+
     final apiResponse = widget.healthProfileId != null && widget.healthProfileId!.trim().isNotEmpty
         ? await HealthProfileService.updateHealthProfile(
             id: widget.healthProfileId!.trim(),
@@ -143,8 +169,8 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
             recentMammography: mammoIso,
             gynVisit: gynIso,
             period: _periodController.text.trim(),
-            baseFindings: _breastExamController.text.trim(),
-            markedImagePath: _bseMarkedImagePath,
+            baseFindings: baseFindings,
+            markedImagePath: effectiveMarkedImagePath,
           )
         : await HealthProfileService.createHealthProfile(
             userId: userId.trim(),
@@ -155,8 +181,8 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
             recentMammography: mammoIso,
             gynVisit: gynIso,
             period: _periodController.text.trim(),
-            baseFindings: _breastExamController.text.trim(),
-            markedImagePath: _bseMarkedImagePath,
+            baseFindings: baseFindings,
+            markedImagePath: effectiveMarkedImagePath,
           );
 
     final statusCode = apiResponse['statusCode'];
@@ -325,6 +351,8 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isEditing = widget.healthProfileId != null && widget.healthProfileId!.trim().isNotEmpty;
+
     return BaseScreen(
       title: 'HEALTH PROFILE',
       showTitleInTopBar: false,
@@ -364,8 +392,10 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
                     _buildDateField('Recent Gynaecologist Visit', _gynVisitController),
                     SizedBox(height: spacing),
                     _buildPeriodField('Period', _periodController),
-                    SizedBox(height: spacing),
-                    _buildBseField('Mark Breast-self-exam findings', _breastExamController),
+                    if (isEditing) ...[
+                      SizedBox(height: spacing),
+                      _buildBseField('Mark Breast-self-exam findings', _breastExamController),
+                    ],
                     SizedBox(height: saveButtonSpacing),
                     _buildSaveButton(),
                   ],
@@ -573,26 +603,48 @@ class _HealthProfileScreenState extends State<HealthProfileScreen> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(25),
-          onTap: () async {
-            final ok = await _saveHealthProfile();
-            if (!mounted) return;
-            if (!ok) return;
+          onTap: _saving
+              ? null
+              : () async {
+                  setState(() {
+                    _saving = true;
+                  });
+                  try {
+                    final ok = await _saveHealthProfile();
+                    if (!mounted) return;
+                    if (!ok) return;
 
-            if (widget.healthProfileId == null || widget.healthProfileId!.trim().isEmpty) {
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (_) => const HealthHistoryScreen()),
-              );
-            }
-          },
-          child: const Center(
-            child: Text(
-              'Save',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-                fontSize: 16,
-              ),
-            ),
+                    if (widget.healthProfileId == null || widget.healthProfileId!.trim().isEmpty) {
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(builder: (_) => const HealthHistoryScreen()),
+                      );
+                    }
+                  } finally {
+                    if (mounted) {
+                      setState(() {
+                        _saving = false;
+                      });
+                    }
+                  }
+                },
+          child: Center(
+            child: _saving
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : const Text(
+                    'Save',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                    ),
+                  ),
           ),
         ),
       ),

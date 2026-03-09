@@ -15,10 +15,9 @@ class HealthHistoryDetailScreen extends StatefulWidget {
 
 class _HealthHistoryDetailScreenState extends State<HealthHistoryDetailScreen> {
   bool _deleting = false;
+  late Future<Map<String, dynamic>> _detailFuture;
 
   Map<String, dynamic> get record => widget.record;
-
-  String _value(String key) => (record[key] ?? '').toString();
 
   String? _id() {
     final raw = record['id'];
@@ -28,17 +27,16 @@ class _HealthHistoryDetailScreenState extends State<HealthHistoryDetailScreen> {
     return null;
   }
 
-  String _formatCreatedAt(String createdAt) {
-    if (createdAt.isEmpty) return '';
-    final normalized = createdAt.replaceFirst(' ', 'T');
-    final dt = DateTime.tryParse(normalized);
-    if (dt == null) return createdAt;
-    final dd = dt.day.toString().padLeft(2, '0');
-    final mm = dt.month.toString().padLeft(2, '0');
-    final yyyy = dt.year.toString();
-    final hh = dt.hour.toString().padLeft(2, '0');
-    final min = dt.minute.toString().padLeft(2, '0');
-    return '$dd/$mm/$yyyy  $hh:$min';
+  @override
+  void initState() {
+    super.initState();
+    _detailFuture = _loadDetail();
+  }
+
+  Future<Map<String, dynamic>> _loadDetail() async {
+    final id = _id();
+    if (id == null || id.trim().isEmpty) return <String, dynamic>{};
+    return HealthProfileService.fetchHealthProfileById(id: id);
   }
 
   Widget _detailRow(String label, String value) {
@@ -60,25 +58,6 @@ class _HealthHistoryDetailScreenState extends State<HealthHistoryDetailScreen> {
         ],
       ),
     );
-  }
-
-  Future<void> _edit() async {
-    final id = _id();
-    if (id == null || id.trim().isEmpty) return;
-
-    final changed = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => HealthProfileScreen(
-          initialRecord: record,
-          healthProfileId: id,
-        ),
-      ),
-    );
-
-    if (!mounted) return;
-    if (changed == true) {
-      Navigator.of(context).pop(true);
-    }
   }
 
   Future<void> _delete() async {
@@ -149,111 +128,155 @@ class _HealthHistoryDetailScreenState extends State<HealthHistoryDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final createdAt = _formatCreatedAt(_value('created_at'));
-    final markedImageUrl = _value('marked_image');
-
     return BaseScreen(
       title: 'HEALTH DETAILS',
       showTitleInTopBar: false,
-      content: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Column(
-          children: [
-            const Text(
-              'HEALTH DETAILS',
-              style: TextStyle(
-                color: Color(0xFFE91E63),
-                fontWeight: FontWeight.w700,
-                fontSize: 22,
-                letterSpacing: 1.2,
+      content: FutureBuilder<Map<String, dynamic>>(
+        future: _detailFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final data = snapshot.data ?? <String, dynamic>{};
+          final statusCode = data['statusCode'];
+          final ok = statusCode == null || statusCode == 200 || statusCode == 201;
+
+          Map<String, dynamic> detail = <String, dynamic>{};
+          final raw = data['data'];
+          if (raw is Map) {
+            detail = raw.map((k, v) => MapEntry(k.toString(), v));
+          }
+
+          if (!ok || detail.isEmpty) {
+            return const Center(
+              child: Text(
+                'Failed to load health details.',
+                style: TextStyle(color: Colors.black87, fontSize: 14),
               ),
-            ),
-            const SizedBox(height: 12),
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
+            );
+          }
+
+          final markedImageUrl = (detail['marked_image'] ?? '').toString();
+          final id = _id();
+
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              children: [
+                const Text(
+                  'HEALTH DETAILS',
+                  style: TextStyle(
+                    color: Color(0xFFE91E63),
+                    fontWeight: FontWeight.w700,
+                    fontSize: 22,
+                    letterSpacing: 1.2,
+                  ),
                 ),
-                child: SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 40),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _detailRow('Created At', createdAt),
-                        _detailRow('Patient Name', _value('patient_name')),
-                        _detailRow('Patient Email', _value('patient_email')),
-                        _detailRow('Height (cm)', _value('height')),
-                        _detailRow('BP Upper', _value('bp_upper')),
-                        _detailRow('BP Lower', _value('bp_lower')),
-                        _detailRow('Recent Pap Smear', _value('recent_pap_smear')),
-                        _detailRow('Recent Mammography', _value('recent_mammography')),
-                        _detailRow('Gyn Visit', _value('gyn_visit')),
-                        _detailRow('Period', _value('period')),
-                        _detailRow('BSE Findings', _value('base_findings')),
-                        const SizedBox(height: 16),
-                        if (markedImageUrl.trim().isNotEmpty) ...[
-                          const Text(
-                            'Marked Image',
-                            style: TextStyle(fontWeight: FontWeight.w700),
-                          ),
-                          const SizedBox(height: 12),
-                          AspectRatio(
-                            aspectRatio: 1,
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: Image.network(
-                                markedImageUrl,
-                                fit: BoxFit.contain,
-                                errorBuilder: (_, __, ___) => const Center(
-                                  child: Text('Failed to load image'),
-                                ),
-                                loadingBuilder: (context, child, progress) {
-                                  if (progress == null) return child;
-                                  return const Center(child: CircularProgressIndicator());
-                                },
+                const SizedBox(height: 12),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: SingleChildScrollView(
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 40),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _detailRow('Patient Name', (detail['patient_name'] ?? '').toString()),
+                            _detailRow('Patient Email', (detail['patient_email'] ?? '').toString()),
+                            _detailRow('Height (cm)', (detail['height'] ?? '').toString()),
+                            _detailRow('BP Upper', (detail['bp_upper'] ?? '').toString()),
+                            _detailRow('BP Lower', (detail['bp_lower'] ?? '').toString()),
+                            _detailRow('Recent Pap Smear', (detail['recent_pap_smear'] ?? '').toString()),
+                            _detailRow('Recent Mammography', (detail['recent_mammography'] ?? '').toString()),
+                            _detailRow('Gyn Visit', (detail['gyn_visit'] ?? '').toString()),
+                            _detailRow('Period', (detail['period'] ?? '').toString()),
+                            const SizedBox(height: 16),
+                            if (markedImageUrl.trim().isNotEmpty) ...[
+                              const Text(
+                                'Marked Image',
+                                style: TextStyle(fontWeight: FontWeight.w700),
                               ),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: OutlinedButton(
-                                  onPressed: _deleting ? null : _edit,
-                                  child: const Text('Edit'),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: ElevatedButton(
-                                  onPressed: _deleting ? null : _delete,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.red,
-                                    foregroundColor: Colors.white,
+                              const SizedBox(height: 12),
+                              AspectRatio(
+                                aspectRatio: 1,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Image.network(
+                                    markedImageUrl,
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (_, __, ___) => const Center(
+                                      child: Text('Failed to load image'),
+                                    ),
+                                    loadingBuilder: (context, child, progress) {
+                                      if (progress == null) return child;
+                                      return const Center(child: CircularProgressIndicator());
+                                    },
                                   ),
-                                  child: _deleting
-                                      ? const SizedBox(
-                                          width: 18,
-                                          height: 18,
-                                          child: CircularProgressIndicator(strokeWidth: 2),
-                                        )
-                                      : const Text('Delete'),
                                 ),
                               ),
                             ],
-                          ),
-                        ]
-                      ],
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton(
+                                    onPressed: (id == null || id.trim().isEmpty)
+                                        ? null
+                                        : () async {
+                                            final changed = await Navigator.of(context).push<bool>(
+                                              MaterialPageRoute(
+                                                builder: (_) => HealthProfileScreen(
+                                                  initialRecord: detail,
+                                                  healthProfileId: id,
+                                                ),
+                                              ),
+                                            );
+
+                                            if (!mounted) return;
+                                            if (changed == true) {
+                                              setState(() {
+                                                _detailFuture = _loadDetail();
+                                              });
+                                            }
+                                          },
+                                    child: const Text('Update'),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: ElevatedButton(
+                                    onPressed: _deleting ? null : _delete,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.red,
+                                      foregroundColor: Colors.white,
+                                    ),
+                                    child: _deleting
+                                        ? const SizedBox(
+                                            width: 18,
+                                            height: 18,
+                                            child: CircularProgressIndicator(strokeWidth: 2),
+                                          )
+                                        : const Text('Delete'),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

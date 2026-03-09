@@ -12,7 +12,7 @@ class BSELanguageScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return BaseScreen(
       title: 'BSE LANGUAGE',
-      showTitleInTopBar: true,
+      showTitleInTopBar: false,
       content: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(

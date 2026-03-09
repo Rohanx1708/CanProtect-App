@@ -27,10 +27,14 @@ class _SplashScreenState extends State<SplashScreen> {
   Future<void> _goNext() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString(AppConstants.userTokenKey);
+    final userId = (prefs.getString(AppConstants.userIdKey) ?? '').trim();
 
     if (!mounted) return;
     if (token != null && token.isNotEmpty) {
-      Navigator.of(context).pushReplacementNamed('/home');
+      Navigator.of(context).pushReplacementNamed(
+        '/home',
+        arguments: userId,
+      );
     } else {
       Navigator.of(context).pushReplacementNamed('/login');
     }

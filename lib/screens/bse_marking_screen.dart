@@ -86,9 +86,51 @@ class BseMarkingScreen extends StatefulWidget {
 }
 
 class _BseMarkingScreenState extends State<BseMarkingScreen> {
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BaseScreen(
+      title: 'SCHEDULE',
+      showTitleInTopBar: false,
+      content: BseMarkingEditor(
+        initialMarkers: widget.initialMarkers,
+        showScheduleHeader: true,
+        onSave: (result) {
+          Navigator.of(context).pop(result);
+        },
+      ),
+    );
+  }
+}
+
+class BseMarkingEditor extends StatefulWidget {
+  final List<BseMarker> initialMarkers;
+  final bool showScheduleHeader;
+  final ValueChanged<BseMarkingResult> onSave;
+
+  const BseMarkingEditor({
+    super.key,
+    this.initialMarkers = const [],
+    required this.onSave,
+    this.showScheduleHeader = false,
+  });
+
+  @override
+  State<BseMarkingEditor> createState() => _BseMarkingEditorState();
+}
+
+class _BseMarkingEditorState extends State<BseMarkingEditor> {
   static const String _assetPath = 'assets/images/bse_editing_img.png';
 
   final GlobalKey _captureKey = GlobalKey();
+
+  Size? _assetPixelSize;
+  ui.Image? _assetImage;
+  Uint8List? _assetRgba;
 
   late List<BseMarker> _markers;
   final List<BseMarker> _redoStack = [];
@@ -101,16 +143,76 @@ class _BseMarkingScreenState extends State<BseMarkingScreen> {
   void initState() {
     super.initState();
     _markers = [...widget.initialMarkers];
+    _resolveAssetSize();
   }
 
-  void _addMarker(Offset localPosition, Size boxSize) {
-    final dx = (localPosition.dx / boxSize.width).clamp(0.0, 1.0);
-    final dy = (localPosition.dy / boxSize.height).clamp(0.0, 1.0);
+  void _resolveAssetSize() {
+    final image = const AssetImage(_assetPath);
+    final stream = image.resolve(ImageConfiguration.empty);
+    late final ImageStreamListener listener;
+    listener = ImageStreamListener(
+      (info, _) {
+        stream.removeListener(listener);
+        _assetImage = info.image;
+        if (!mounted) return;
+        setState(() {
+          _assetPixelSize = Size(
+            info.image.width.toDouble(),
+            info.image.height.toDouble(),
+          );
+        });
+
+        () async {
+          try {
+            final bytes = await info.image.toByteData(format: ui.ImageByteFormat.rawRgba);
+            if (bytes == null) return;
+            if (!mounted) return;
+            setState(() {
+              _assetRgba = bytes.buffer.asUint8List();
+            });
+          } catch (_) {
+            // ignore
+          }
+        }();
+      },
+      onError: (_, __) {
+        stream.removeListener(listener);
+      },
+    );
+    stream.addListener(listener);
+  }
+
+  bool _isOpaqueAtNormalized(Offset normalized) {
+    final rgba = _assetRgba;
+    final img = _assetImage;
+    if (rgba == null || img == null) return true;
+
+    final int w = img.width;
+    final int h = img.height;
+    if (w <= 0 || h <= 0) return true;
+
+    final int x = (normalized.dx.clamp(0.0, 1.0) * (w - 1)).round();
+    final int y = (normalized.dy.clamp(0.0, 1.0) * (h - 1)).round();
+    final int index = (y * w + x) * 4;
+    if (index < 0 || index + 3 >= rgba.length) return true;
+
+    final int alpha = rgba[index + 3];
+    return alpha > 20;
+  }
+
+  void _addMarker(Offset localPosition, Rect imageRect) {
+    if (!imageRect.contains(localPosition)) return;
+
+    final dx = ((localPosition.dx - imageRect.left) / imageRect.width).clamp(0.0, 1.0);
+    final dy = ((localPosition.dy - imageRect.top) / imageRect.height).clamp(0.0, 1.0);
+    final normalized = Offset(dx, dy);
+
+    if (!_isOpaqueAtNormalized(normalized)) return;
 
     setState(() {
       _markers.add(
         BseMarker(
-          normalizedPosition: Offset(dx, dy),
+          normalizedPosition: normalized,
           type: _selectedType,
           radius: _brushRadius,
           opacity: _brushOpacity,
@@ -324,17 +426,15 @@ class _BseMarkingScreenState extends State<BseMarkingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return BaseScreen(
-      title: 'SCHEDULE',
-      showTitleInTopBar: false,
-      content: Align(
-        alignment: const Alignment(0, -0.25),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
+    return Align(
+      alignment: const Alignment(0, -0.25),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (widget.showScheduleHeader) ...[
                 const Text(
                   'SCHEDULE',
                   style: TextStyle(
@@ -345,121 +445,129 @@ class _BseMarkingScreenState extends State<BseMarkingScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.18),
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: Colors.white.withOpacity(0.5), width: 1),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      LayoutBuilder(
-                        builder: (context, constraints) {
-                          final double imageSize = constraints.maxWidth;
+              ],
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.18),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: Colors.white.withOpacity(0.5), width: 1),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final double imageSize = constraints.maxWidth;
+                        final fittedRect = () {
+                          final assetSize = _assetPixelSize;
+                          if (assetSize == null) {
+                            return Rect.fromLTWH(0, 0, imageSize, imageSize);
+                          }
+                          final fitted = applyBoxFit(BoxFit.contain, assetSize, Size(imageSize, imageSize));
+                          return Alignment.center.inscribe(
+                            fitted.destination,
+                            Offset.zero & Size(imageSize, imageSize),
+                          );
+                        }();
 
-                          return SizedBox(
-                            width: imageSize,
-                            height: imageSize,
-                            child: RepaintBoundary(
-                              key: _captureKey,
-                              child: Builder(
-                                builder: (context) {
-                                  return GestureDetector(
-                                    onTapDown: (details) {
-                                      final box = context.findRenderObject() as RenderBox?;
-                                      if (box == null) return;
-                                      _addMarker(details.localPosition, box.size);
-                                    },
-                                    child: Stack(
-                                      children: [
-                                        Positioned.fill(
-                                          child: Image.asset(
-                                            _assetPath,
-                                            fit: BoxFit.contain,
-                                            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                                          ),
-                                        ),
-                                        ..._markers.map((m) {
-                                          final double r = m.radius;
-                                          final double left = m.normalizedPosition.dx * imageSize - r;
-                                          final double top = m.normalizedPosition.dy * imageSize - r;
-
-                                          return Positioned(
-                                            left: left,
-                                            top: top,
-                                            child: Container(
-                                              width: r * 2,
-                                              height: r * 2,
-                                              decoration: BoxDecoration(
-                                                shape: BoxShape.circle,
-                                                color: _colorFor(m.type).withOpacity(m.opacity),
-                                              ),
-                                            ),
-                                          );
-                                        }),
-                                      ],
+                        return SizedBox(
+                          width: imageSize,
+                          height: imageSize,
+                          child: RepaintBoundary(
+                            key: _captureKey,
+                            child: GestureDetector(
+                              onTapDown: (details) {
+                                _addMarker(details.localPosition, fittedRect);
+                              },
+                              child: Stack(
+                                children: [
+                                  Positioned.fill(
+                                    child: Image.asset(
+                                      _assetPath,
+                                      fit: BoxFit.contain,
+                                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                                     ),
-                                  );
-                                },
+                                  ),
+                                  ..._markers.map((m) {
+                                    final double r = m.radius;
+                                    final double left =
+                                        fittedRect.left + m.normalizedPosition.dx * fittedRect.width - r;
+                                    final double top =
+                                        fittedRect.top + m.normalizedPosition.dy * fittedRect.height - r;
+
+                                    return Positioned(
+                                      left: left,
+                                      top: top,
+                                      child: Container(
+                                        width: r * 2,
+                                        height: r * 2,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: _colorFor(m.type).withOpacity(m.opacity),
+                                        ),
+                                      ),
+                                    );
+                                  }),
+                                ],
                               ),
                             ),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _typeSelector(BseMarkerType.lump),
+                        _typeSelector(BseMarkerType.nippleDischarge),
+                        _typeSelector(BseMarkerType.pain),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        IconButton(
+                          onPressed: _openBrushSheet,
+                          icon: const Icon(Icons.edit, color: Colors.black87),
+                        ),
+                        IconButton(
+                          onPressed: _markers.isEmpty ? null : _undo,
+                          icon: const Icon(Icons.undo, color: Colors.black87),
+                        ),
+                        IconButton(
+                          onPressed: _redoStack.isEmpty ? null : _redo,
+                          icon: const Icon(Icons.redo, color: Colors.black87),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          final String? path = await _captureMarkedImageToTempFile();
+                          if (!mounted) return;
+                          widget.onSave(
+                            BseMarkingResult(markers: _markers, markedImagePath: path),
                           );
                         },
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          _typeSelector(BseMarkerType.lump),
-                          _typeSelector(BseMarkerType.nippleDischarge),
-                          _typeSelector(BseMarkerType.pain),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          IconButton(
-                            onPressed: _openBrushSheet,
-                            icon: const Icon(Icons.edit, color: Colors.black87),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFE91E63),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          IconButton(
-                            onPressed: _markers.isEmpty ? null : _undo,
-                            icon: const Icon(Icons.undo, color: Colors.black87),
-                          ),
-                          IconButton(
-                            onPressed: _redoStack.isEmpty ? null : _redo,
-                            icon: const Icon(Icons.redo, color: Colors.black87),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () async {
-                            final navigator = Navigator.of(context);
-                            final String? path = await _captureMarkedImageToTempFile();
-                            if (!mounted) return;
-                            navigator.pop(BseMarkingResult(markers: _markers, markedImagePath: path));
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFE91E63),
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: const Text('Done'),
                         ),
+                        child: const Text('Save'),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

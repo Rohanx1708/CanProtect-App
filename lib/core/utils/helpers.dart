@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class Helpers {
   static void showSnackBar(BuildContext context, String message, {Color? color}) {
@@ -12,7 +13,17 @@ class Helpers {
   }
   
   static String formatDateTime(DateTime dateTime) {
-    return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
+    return DateFormat('d MMM, y').format(dateTime);
+  }
+
+  static String formatApiDateString(dynamic value) {
+    final raw = (value ?? '').toString().trim();
+    if (raw.isEmpty) return '';
+
+    final normalized = raw.contains(' ') ? raw.replaceFirst(' ', 'T') : raw;
+    final dt = DateTime.tryParse(normalized);
+    if (dt == null) return raw;
+    return formatDateTime(dt);
   }
   
   static bool isValidEmail(String email) {

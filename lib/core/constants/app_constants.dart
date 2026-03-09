@@ -1,10 +1,10 @@
 class AppConstants {
   // App Info
-  static const String appName = 'Can Protect';
+  static const String appName = 'Canapp';
   static const String appVersion = '1.0.0';
   
   // API Endpoints
-  static const String baseUrl = 'https://canapp.qwetzal.com';
+  static const String baseUrl = 'https://colposcopy.in';
   
   // Storage Keys
   static const String userTokenKey = 'user_token';

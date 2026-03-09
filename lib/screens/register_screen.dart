@@ -28,6 +28,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String? _selectedMaritalStatus;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  String? _emailFieldError;
 
   static const List<String> _maritalStatusOptions = <String>[
     'Single',
@@ -35,6 +36,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
     'Divorced',
     'Widowed',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController.addListener(() {
+      if (_emailFieldError != null) {
+        setState(() {
+          _emailFieldError = null;
+        });
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -50,6 +63,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _register() async {
+    if (_emailFieldError != null) {
+      setState(() {
+        _emailFieldError = null;
+      });
+    }
+
     final isValid = _formKey.currentState?.validate() ?? false;
     if (!isValid) return;
 
@@ -84,7 +103,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
       final statusCode = response['statusCode'];
       final isOk = statusCode == 200 || statusCode == 201;
       if (!isOk) {
-        final message = _extractErrorMessage(response) ?? 'Registration failed.';
+        final extractedMessage = _extractErrorMessage(response);
+        final isDuplicateEmail =
+            _isEmailAlreadyRegistered(response, extractedMessage);
+        if (isDuplicateEmail) {
+          if (!mounted) return;
+          setState(() {
+            _emailFieldError = 'Email is already registered.';
+          });
+          return;
+        }
+
+        final message = extractedMessage ?? 'Registration failed.';
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(message)),
@@ -148,6 +178,43 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (raw is String && raw.trim().isNotEmpty) return raw.trim();
 
     return null;
+  }
+
+  bool _isEmailAlreadyRegistered(
+    Map<String, dynamic> response,
+    String? extractedMessage,
+  ) {
+    bool containsEmailAlreadyTaken(dynamic value) {
+      if (value == null) return false;
+      if (value is String) {
+        final normalized = value.toLowerCase();
+        return normalized.contains('email') &&
+            (normalized.contains('already') ||
+                normalized.contains('taken') ||
+                normalized.contains('exists') ||
+                normalized.contains('registered'));
+      }
+      if (value is List) {
+        return value.any(containsEmailAlreadyTaken);
+      }
+      if (value is Map) {
+        return value.values.any(containsEmailAlreadyTaken);
+      }
+      return false;
+    }
+
+    final statusCode = response['statusCode'];
+    final looksLikeValidationError = statusCode == 409 || statusCode == 422;
+
+    if (containsEmailAlreadyTaken(extractedMessage)) return true;
+    if (containsEmailAlreadyTaken(response['message'])) return true;
+    if (containsEmailAlreadyTaken(response['errors'])) return true;
+
+    final data = response['data'];
+    if (data is Map && containsEmailAlreadyTaken(data['errors'])) return true;
+
+    return looksLikeValidationError &&
+        containsEmailAlreadyTaken(response['raw']);
   }
 
   @override
@@ -255,6 +322,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     hint: 'Email',
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
+                    errorText: _emailFieldError,
                     validator: (value) {
                       final v = (value ?? '').trim();
                       if (v.isEmpty) return 'Email is required.';
@@ -379,6 +447,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     TextInputType? keyboardType,
     bool obscureText = false,
     Widget? suffixIcon,
+    String? errorText,
     String? Function(String?)? validator,
   }) {
     return Padding(
@@ -393,6 +462,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: const TextStyle(color: Color(0xFFE91E63)),
+          errorText: errorText,
           filled: true,
           fillColor: Colors.white,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

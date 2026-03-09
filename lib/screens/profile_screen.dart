@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/base_screen.dart';
 import '../services/profile_service.dart';
+import '../screens/change_password_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -181,8 +182,8 @@ class _ProfileFormState extends State<_ProfileForm> {
   late final TextEditingController _mobileController;
   late final TextEditingController _cityController;
   late final TextEditingController _emailController;
-  late final TextEditingController _roleController;
   bool _saving = false;
+  bool _editing = false;
   String? _selectedMaritalStatus;
 
   static const List<String> _maritalStatusOptions = <String>[
@@ -233,11 +234,6 @@ class _ProfileFormState extends State<_ProfileForm> {
     if (_maritalStatusOptions.contains(maritalStatus)) {
       _selectedMaritalStatus = maritalStatus;
     }
-
-    final roleRaw = widget.user['role'];
-    final role = roleRaw is Map ? Map<String, dynamic>.from(roleRaw) : <String, dynamic>{};
-    final roleName = _pickString(role['name']).trim();
-    _roleController = TextEditingController(text: roleName);
   }
 
   @override
@@ -248,7 +244,6 @@ class _ProfileFormState extends State<_ProfileForm> {
     _mobileController.dispose();
     _cityController.dispose();
     _emailController.dispose();
-    _roleController.dispose();
     super.dispose();
   }
 
@@ -326,7 +321,173 @@ class _ProfileFormState extends State<_ProfileForm> {
 
   @override
   Widget build(BuildContext context) {
-    final roleName = _roleController.text.trim();
+    if (!_editing) {
+      final name = _nameController.text.trim();
+      final age = _ageController.text.trim();
+      final maritalStatus = _maritalStatusController.text.trim();
+      final mobile = _mobileController.text.trim();
+      final city = _cityController.text.trim();
+      final email = _emailController.text.trim();
+
+      final initials = () {
+        final parts = name.split(RegExp(r'\s+')).where((p) => p.trim().isNotEmpty).toList();
+        if (parts.isEmpty) return '';
+        final first = parts.first.trim();
+        final last = parts.length > 1 ? parts.last.trim() : '';
+        final a = first.isNotEmpty ? first[0] : '';
+        final b = last.isNotEmpty ? last[0] : '';
+        return (a + b).toUpperCase();
+      }();
+
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: Colors.white.withOpacity(0.18),
+              border: Border.all(color: Colors.white.withOpacity(0.5), width: 1),
+            ),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 28,
+                  backgroundColor: const Color(0xFFE91E63),
+                  foregroundColor: Colors.white,
+                  child: Text(
+                    initials.isEmpty ? 'U' : initials,
+                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name.isEmpty ? '-' : name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.black87,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        email.isEmpty ? '-' : email,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.black54,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: Colors.white.withOpacity(0.14),
+              border: Border.all(color: Colors.white.withOpacity(0.45), width: 1),
+            ),
+            child: Column(
+              children: [
+                _viewRow('Age', age),
+                const SizedBox(height: 8),
+                _viewRow('Marital Status', maritalStatus),
+                const SizedBox(height: 8),
+                _viewRow('Mobile Number', mobile),
+                const SizedBox(height: 8),
+                _viewRow('City', city),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(
+                width: 95,
+                height: 40,
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFFF3D7F), Color(0xFFE91E63)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    boxShadow: const [
+                      BoxShadow(color: Colors.black26, blurRadius: 18, offset: Offset(0, 10)),
+                    ],
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(20),
+                      onTap: () {
+                        setState(() {
+                          _editing = true;
+                        });
+                      },
+                      child: const Center(
+                        child: Text(
+                          'Edit',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              SizedBox(
+                width: 145,
+                height: 40,
+                child: OutlinedButton(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const ChangePasswordScreen()),
+                    );
+                  },
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    side: const BorderSide(color: Color(0xFFE91E63), width: 1.5),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                  child: const Text(
+                    'Change Password',
+                    style: TextStyle(
+                      color: Color(0xFFE91E63),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+    }
 
     return Form(
       key: _formKey,
@@ -396,49 +557,93 @@ class _ProfileFormState extends State<_ProfileForm> {
               return null;
             },
           ),
-          if (roleName.isNotEmpty) ...[
-            _label('Role'),
-            _field(controller: _roleController, readOnly: true),
-          ],
           const SizedBox(height: 12),
-          Center(
-            child: Container(
-              width: 110,
-              height: 40,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFFF3D7F), Color(0xFFE91E63)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                boxShadow: const [
-                  BoxShadow(color: Colors.black26, blurRadius: 18, offset: Offset(0, 10)),
-                ],
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(20),
-                  onTap: _saving ? null : _submit,
-                  child: Center(
-                    child: _saving
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                          )
-                        : const Text(
-                            'Update',
-                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
-                          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(
+                width: 95,
+                height: 40,
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFFF3D7F), Color(0xFFE91E63)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    boxShadow: const [
+                      BoxShadow(color: Colors.black26, blurRadius: 18, offset: Offset(0, 10)),
+                    ],
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(20),
+                      onTap: _saving
+                          ? null
+                          : () {
+                              if (!_editing) {
+                                setState(() {
+                                  _editing = true;
+                                });
+                                return;
+                              }
+                              _submit();
+                            },
+                      child: Center(
+                        child: _saving
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              )
+                            : Text(
+                                _editing ? 'Update' : 'Edit',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 12,
+                                ),
+                              ),
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
+            ],
           ),
         ],
       ),
+    );
+  }
+
+  Widget _viewRow(String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 110,
+          child: Text(
+            label,
+            style: const TextStyle(
+              color: Colors.black87,
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value.trim().isEmpty ? '-' : value.trim(),
+            style: const TextStyle(
+              color: Colors.black87,
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -456,10 +661,11 @@ class _ProfileFormState extends State<_ProfileForm> {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
-      readOnly: readOnly,
+      readOnly: readOnly || !_editing,
       validator: validator,
       autovalidateMode: AutovalidateMode.onUserInteraction,
       style: const TextStyle(color: Colors.black87, fontSize: 14),
+      enabled: !readOnly && _editing,
       decoration: InputDecoration(
         isDense: true,
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -502,7 +708,7 @@ class _ProfileFormState extends State<_ProfileForm> {
             ),
           )
           .toList(),
-      onChanged: _saving
+      onChanged: (!_editing || _saving)
           ? null
           : (value) {
               setState(() {

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../widgets/base_screen.dart';
 import 'health_history_detail_screen.dart';
 import '../services/health_profile_service.dart';
+import '../core/utils/helpers.dart';
 
 class HealthHistoryScreen extends StatefulWidget {
   const HealthHistoryScreen({super.key});
@@ -21,7 +22,7 @@ class _HealthHistoryScreenState extends State<HealthHistoryScreen> {
   }
 
   Future<List<Map<String, dynamic>>> _loadRecords() async {
-    final response = await HealthProfileService.fetchHealthProfiles(page: 1);
+    final response = await HealthProfileService.fetchHealthProfiles(page: 1, perPage: 10);
     final statusCode = response['statusCode'];
     final isOk = statusCode == 200 || statusCode == 201;
     if (!isOk) return <Map<String, dynamic>>[];
@@ -36,19 +37,6 @@ class _HealthHistoryScreenState extends State<HealthHistoryScreen> {
         .whereType<Map>()
         .map((m) => m.map((key, value) => MapEntry(key.toString(), value)))
         .toList();
-  }
-
-  String _formatCreatedAt(dynamic createdAt) {
-    if (createdAt is! String || createdAt.isEmpty) return '';
-    final normalized = createdAt.replaceFirst(' ', 'T');
-    final dt = DateTime.tryParse(normalized);
-    if (dt == null) return createdAt;
-    final dd = dt.day.toString().padLeft(2, '0');
-    final mm = dt.month.toString().padLeft(2, '0');
-    final yyyy = dt.year.toString();
-    final hh = dt.hour.toString().padLeft(2, '0');
-    final min = dt.minute.toString().padLeft(2, '0');
-    return '$dd/$mm/$yyyy  $hh:$min';
   }
 
   @override
@@ -92,7 +80,7 @@ class _HealthHistoryScreenState extends State<HealthHistoryScreen> {
                   separatorBuilder: (_, __) => const SizedBox(height: 12),
                   itemBuilder: (context, index) {
                     final r = records[index];
-                    final createdAt = _formatCreatedAt(r['created_at']);
+                    final createdAt = Helpers.formatApiDateString(r['created_at']);
                     final subtitle = createdAt.isEmpty ? '-' : createdAt;
                     final patientName = (r['patient_name'] ?? '').toString().trim();
 

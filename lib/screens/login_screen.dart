@@ -64,7 +64,11 @@ class _LoginScreenState extends State<LoginScreen> {
       }
 
       if (!mounted) return;
-      Navigator.of(context).pushNamedAndRemoveUntil('/home', (_) => false);
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        '/home',
+        (_) => false,
+        arguments: userId,
+      );
     } finally {
       if (mounted) {
         setState(() {

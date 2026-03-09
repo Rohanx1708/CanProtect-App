@@ -12,6 +12,8 @@ import '../core/constants/app_constants.dart';
 class BaseScreen extends StatefulWidget {
   final String? title;
   final Widget content;
+  final bool showTopBar;
+  final bool showBrandInTopBar;
   final bool showTitleInTopBar;
   final bool showBottomButtons;
   final bool showSideIcons;
@@ -21,6 +23,8 @@ class BaseScreen extends StatefulWidget {
     super.key,
     this.title,
     required this.content,
+    this.showTopBar = true,
+    this.showBrandInTopBar = false,
     this.showTitleInTopBar = false,
     this.showBottomButtons = true,
     this.showSideIcons = true,
@@ -137,162 +141,180 @@ class _BaseScreenState extends State<BaseScreen> {
         child: Stack(
           children: [
             // Top Bar
-            SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const ProfileScreen()),
-                        );
-                      },
-                      child: Image.asset('assets/images/profile_icon.png', width: 32, height: 32),
-                    ),
-                    if (widget.showTitleInTopBar && widget.title != null)
-                      Text(
-                        widget.title!,
-                        style: const TextStyle(
-                          color: Color(0xFFE91E63),
-                          fontWeight: FontWeight.w700,
-                          fontSize: 22,
-                          letterSpacing: 1.2,
-                        ),
-                      )
-                    else
-                      const SizedBox(width: 35), // Spacer when no title
-                    GestureDetector(
-                      onTap: () {
-                        showDialog<void>(
-                          context: context,
-                          barrierDismissible: true,
-                          builder: (dialogContext) {
-                            Widget buildMenuButton(String label, VoidCallback onPressed) {
-                              return SizedBox(
-                                width: double.infinity,
-                                child: OutlinedButton(
-                                  onPressed: onPressed,
-                                  style: OutlinedButton.styleFrom(
-                                    side: const BorderSide(color: Color(0xFFE91E63), width: 1.5),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
+            if (widget.showTopBar)
+              SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                              );
+                            },
+                            child: Image.asset('assets/images/profile_icon.png', width: 32, height: 32),
+                          ),
+                          if (widget.showBrandInTopBar) ...[
+                            const SizedBox(width: 10),
+                            const Text(
+                              'CAN PROTECT FOUNDATION',
+                              style: TextStyle(
+                                color: Color(0xFFE91E63),
+                                fontWeight: FontWeight.w700,
+                                fontSize: 16,
+                                letterSpacing: 0.6,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      if (widget.showTitleInTopBar && widget.title != null)
+                        Text(
+                          widget.title!,
+                          style: const TextStyle(
+                            color: Color(0xFFE91E63),
+                            fontWeight: FontWeight.w700,
+                            fontSize: 22,
+                            letterSpacing: 1.2,
+                          ),
+                        )
+                      else
+                        const SizedBox(width: 35), // Spacer when no title
+                      GestureDetector(
+                        onTap: () {
+                          showDialog<void>(
+                            context: context,
+                            barrierDismissible: true,
+                            builder: (dialogContext) {
+                              Widget buildMenuButton(String label, VoidCallback onPressed) {
+                                return SizedBox(
+                                  width: double.infinity,
+                                  child: OutlinedButton(
+                                    onPressed: onPressed,
+                                    style: OutlinedButton.styleFrom(
+                                      side: const BorderSide(color: Color(0xFFE91E63), width: 1.5),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      padding: const EdgeInsets.symmetric(vertical: 10),
                                     ),
-                                    padding: const EdgeInsets.symmetric(vertical: 10),
+                                    child: Text(
+                                      label,
+                                      style: const TextStyle(
+                                        color: Color(0xFFE91E63),
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
                                   ),
-                                  child: Text(
-                                    label,
-                                    style: const TextStyle(
-                                      color: Color(0xFFE91E63),
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                                );
+                              }
+
+                              void showNotReady(String label) {
+                                Navigator.of(dialogContext).pop();
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(label),
+                                  ),
+                                );
+                              }
+
+                              return Dialog(
+                                backgroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(18.0),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      buildMenuButton(
+                                        'How to use this app?',
+                                        () {
+                                          Navigator.of(dialogContext).pop();
+                                          _launchExternalUrl(
+                                            'https://canprotectfoundation.com/how-to-use-canapp/',
+                                          );
+                                        },
+                                      ),
+                                      const SizedBox(height: 8),
+                                      buildMenuButton(
+                                        'Our Story',
+                                        () {
+                                          Navigator.of(dialogContext).pop();
+                                          Future.microtask(() {
+                                            if (!mounted) return;
+                                            Navigator.of(context).push(
+                                              MaterialPageRoute(builder: (_) => const OurStoryScreen()),
+                                            );
+                                          });
+                                        },
+                                      ),
+                                      const SizedBox(height: 8),
+                                      buildMenuButton(
+                                        'Founder',
+                                        () {
+                                          Navigator.of(dialogContext).pop();
+                                          Future.microtask(() {
+                                            if (!mounted) return;
+                                            Navigator.of(context).push(
+                                              MaterialPageRoute(builder: (_) => const FounderScreen()),
+                                            );
+                                          });
+                                        },
+                                      ),
+                                      const SizedBox(height: 8),
+                                      buildMenuButton(
+                                        'Contact us',
+                                        () {
+                                          Navigator.of(dialogContext).pop();
+                                          _launchExternalUrl(
+                                            'https://canprotectfoundation.com/contact-us/',
+                                          );
+                                        },
+                                      ),
+                                      const SizedBox(height: 8),
+                                      buildMenuButton(
+                                        'Change Password',
+                                        () {
+                                          Navigator.of(dialogContext).pop();
+                                          Navigator.of(context).push(
+                                            MaterialPageRoute(builder: (_) => const ChangePasswordScreen()),
+                                          );
+                                        },
+                                      ),
+                                      const SizedBox(height: 8),
+                                      buildMenuButton(
+                                        'Logout',
+                                        () {
+                                          Navigator.of(dialogContext).pop();
+                                          _confirmLogout();
+                                        },
+                                      ),
+                                      const SizedBox(height: 8),
+                                      buildMenuButton(
+                                        'Close',
+                                        () => Navigator.of(dialogContext).pop(),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               );
-                            }
-
-                            void showNotReady(String label) {
-                              Navigator.of(dialogContext).pop();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(label),
-                                ),
-                              );
-                            }
-
-                            return Dialog(
-                              backgroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(18.0),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    buildMenuButton(
-                                      'How to use this app?',
-                                      () {
-                                        Navigator.of(dialogContext).pop();
-                                        _launchExternalUrl(
-                                          'https://canprotectfoundation.com/how-to-use-canapp/',
-                                        );
-                                      },
-                                    ),
-                                    const SizedBox(height: 8),
-                                    buildMenuButton(
-                                      'Our Story',
-                                      () {
-                                        Navigator.of(dialogContext).pop();
-                                        Future.microtask(() {
-                                          if (!mounted) return;
-                                          Navigator.of(context).push(
-                                            MaterialPageRoute(builder: (_) => const OurStoryScreen()),
-                                          );
-                                        });
-                                      },
-                                    ),
-                                    const SizedBox(height: 8),
-                                    buildMenuButton(
-                                      'Founder',
-                                      () {
-                                        Navigator.of(dialogContext).pop();
-                                        Future.microtask(() {
-                                          if (!mounted) return;
-                                          Navigator.of(context).push(
-                                            MaterialPageRoute(builder: (_) => const FounderScreen()),
-                                          );
-                                        });
-                                      },
-                                    ),
-                                    const SizedBox(height: 8),
-                                    buildMenuButton(
-                                      'Contact us',
-                                      () {
-                                        Navigator.of(dialogContext).pop();
-                                        _launchExternalUrl(
-                                          'https://canprotectfoundation.com/contact-us/',
-                                        );
-                                      },
-                                    ),
-                                    const SizedBox(height: 8),
-                                    buildMenuButton(
-                                      'Change Password',
-                                      () {
-                                        Navigator.of(dialogContext).pop();
-                                        Navigator.of(context).push(
-                                          MaterialPageRoute(builder: (_) => const ChangePasswordScreen()),
-                                        );
-                                      },
-                                    ),
-                                    const SizedBox(height: 8),
-                                    buildMenuButton(
-                                      'Logout',
-                                      () {
-                                        Navigator.of(dialogContext).pop();
-                                        _confirmLogout();
-                                      },
-                                    ),
-                                    const SizedBox(height: 8),
-                                    buildMenuButton(
-                                      'Close',
-                                      () => Navigator.of(dialogContext).pop(),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        );
-                      },
-                      child: Image.asset('assets/images/sub_menu_icon.png', width: 32, height: 32),
-                    ),
-                  ],
+                            },
+                          );
+                        },
+                        child: Image.asset('assets/images/sub_menu_icon.png', width: 32, height: 32),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
             
             // Border Image with Content
             Align(
@@ -302,21 +324,11 @@ class _BaseScreenState extends State<BaseScreen> {
                   final double targetWidth = constraints.maxWidth * 0.8;
                   final double targetHeight = targetWidth * 2;
                   return Padding(
-                    padding: const EdgeInsets.all(24),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
                     child: SizedBox(
                       width: targetWidth,
                       height: targetHeight,
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          Image.asset(
-                            'assets/images/bg_white_border.png',
-                            fit: BoxFit.fill,
-                          ),
-                          // Content Widget (customizable for each screen)
-                          widget.content,
-                        ],
-                      ),
+                      child: widget.content,
                     ),
                   );
                 },
@@ -362,7 +374,12 @@ class _BaseScreenState extends State<BaseScreen> {
             if (widget.showSideIcons) ...[
               Align(
                 alignment: const Alignment(-0.91, 0.87),
-                child: Image.asset('assets/images/web_icon.png', height: 38, fit: BoxFit.contain),
+                child: GestureDetector(
+                  onTap: () {
+                    _launchExternalUrl('https://canprotectfoundation.com/');
+                  },
+                  child: Image.asset('assets/images/web_icon.png', height: 38, fit: BoxFit.contain),
+                ),
               ),
               Align(
                 alignment: const Alignment(0.91, 0.87),
